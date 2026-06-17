@@ -68,14 +68,14 @@ export default function App() {
             {/* Footer */}
             <div className="mt-8 pt-5 border-t border-border flex items-center justify-between flex-wrap gap-3">
               <div className="text-muted-foreground" style={{ fontSize: "0.68rem", fontFamily: "'Inter', sans-serif" }}>
-                StreamMetrics v2.4.1 — Powered by{" "}
+                OTT Streaming Analytics Dashboard
                 <span className="font-semibold" style={{ color: accent }}>Qlik Sense</span>
-                {" "}· Data refreshed June 17, 2026
+                
               </div>
               <div className="flex items-center gap-5">
                 {[
                   { label: "Data Source", value: "Kaggle OTT Dataset" },
-                  { label: "Showing", value: `${chartData.kpi.totalTitles} / 170` },
+                  { label: "Showing", value: `${chartData.kpi.totalTitles} titles` },
                   { label: "Platforms", value: String(chartData.kpi.totalPlatforms) },
                 ].map((item) => (
                   <div key={item.label} className="text-center">
