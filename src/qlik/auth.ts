@@ -23,7 +23,7 @@ export function getOrCreateCsrfToken(): string {
 
 export function buildQlikLoginUrl(returnTo = window.location.href): string {
 	const preferredReturnTo = qlikConfig.appOrigin ?? returnTo;
-	const normalizedReturnTo = new URL(preferredReturnTo, window.location.origin).origin + "/";
+	const normalizedReturnTo = new URL(preferredReturnTo, window.location.origin).origin;
 	const params = new URLSearchParams({
 		"qlik-web-integration-id": qlikConfig.webIntegrationId,
 		returnto: normalizedReturnTo,
