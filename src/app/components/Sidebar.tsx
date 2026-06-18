@@ -3,11 +3,13 @@ import { ChevronDown, SlidersHorizontal, RotateCcw } from "lucide-react";
 import type { Filters } from "../data/derive";
 import { DEFAULT_FILTERS } from "../data/derive";
 import { ALL_PLATFORMS, ALL_GENRES, ALL_RATINGS, KNOWN_COUNTRIES, PLATFORM_COLORS } from "../data/dataset";
+import type { QlikFilterOptions } from "../../qlik/dashboard";
 
 interface SidebarProps {
   filters: Filters;
   onChange: (f: Filters) => void;
   isDark: boolean;
+  liveOptions?: QlikFilterOptions;
 }
 
 function Section({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -54,8 +56,12 @@ function CheckRow({
   );
 }
 
-export function Sidebar({ filters, onChange, isDark }: SidebarProps) {
+export function Sidebar({ filters, onChange, isDark, liveOptions }: SidebarProps) {
   const accent = isDark ? "#E50914" : "#2563EB";
+  const platformOptions = liveOptions?.platforms?.length ? liveOptions.platforms : ALL_PLATFORMS;
+  const genreOptions = liveOptions?.genres?.length ? liveOptions.genres : ALL_GENRES;
+  const countryOptions = liveOptions?.countries?.length ? liveOptions.countries : KNOWN_COUNTRIES;
+  const ratingOptions = liveOptions?.ageRatings?.length ? liveOptions.ageRatings : ALL_RATINGS;
 
   function toggleItem(key: keyof Pick<Filters, 'platforms' | 'genres' | 'ageRatings'>, value: string) {
     const current = filters[key] as string[];
@@ -103,7 +109,7 @@ export function Sidebar({ filters, onChange, isDark }: SidebarProps) {
             >
               All
             </button>
-            {ALL_PLATFORMS.map((p) => (
+            {platformOptions.map((p) => (
               <button
                 key={p}
                 onClick={() => onChange({ ...filters, platforms: [p] })}
@@ -120,7 +126,7 @@ export function Sidebar({ filters, onChange, isDark }: SidebarProps) {
               </button>
             ))}
           </div>
-          {ALL_PLATFORMS.map((p) => (
+          {platformOptions.map((p) => (
             <CheckRow
               key={p}
               label={p}
@@ -167,7 +173,7 @@ export function Sidebar({ filters, onChange, isDark }: SidebarProps) {
               All genres
             </button>
           </div>
-          {ALL_GENRES.map((g) => (
+          {genreOptions.map((g) => (
             <CheckRow
               key={g}
               label={g}
@@ -200,7 +206,7 @@ export function Sidebar({ filters, onChange, isDark }: SidebarProps) {
               All
             </button>
           </div>
-          {KNOWN_COUNTRIES.map((c) => (
+          {countryOptions.map((c) => (
             <CheckRow
               key={c}
               label={c}
@@ -231,7 +237,7 @@ export function Sidebar({ filters, onChange, isDark }: SidebarProps) {
                 className="w-full border border-border rounded-lg px-2 py-1.5 bg-card text-card-foreground"
                 style={{ fontSize: "0.76rem", fontFamily: "'Inter', sans-serif", outline: "none", cursor: "pointer" }}
               >
-                {[2008, 2010, 2012, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023].map((y) => (
+                {(liveOptions?.releaseYears?.length ? liveOptions.releaseYears : [2008, 2010, 2012, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]).map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
@@ -269,7 +275,7 @@ export function Sidebar({ filters, onChange, isDark }: SidebarProps) {
             </button>
           </div>
           <div className="flex flex-wrap gap-1">
-            {ALL_RATINGS.map((r) => {
+            {ratingOptions.map((r) => {
               const active = filters.ageRatings.length === 0 || filters.ageRatings.includes(r);
               return (
                 <button

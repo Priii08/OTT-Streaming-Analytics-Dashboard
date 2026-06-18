@@ -1,5 +1,5 @@
-export type Platform = 'Netflix' | 'Prime Video' | 'Disney+' | 'Hulu';
-export type ContentType = 'Movie' | 'TV Show';
+export type Platform = string;
+export type ContentType = string;
 
 export interface Title {
   id: number;
