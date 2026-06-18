@@ -1,12 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { KpiCards } from "./components/KpiCards";
 import { StandardAnalytics } from "./components/StandardAnalytics";
 import { AdvancedAnalytics } from "./components/AdvancedAnalytics";
 import { DEFAULT_FILTERS, filterTitles, deriveChartData, type Filters } from "./data/derive";
+import { authenticate } from "../qlik/auth";
 
 export default function App() {
+  useEffect(() => {
+  authenticate()
+    .then((user) => console.log(user))
+    .catch((err) => console.error(err));
+}, []);
+
   const [isDark, setIsDark] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
 
