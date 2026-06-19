@@ -140,6 +140,16 @@ export default function App() {
                   <code className="text-foreground">{qlikConfig.appOrigin || "(not set)"}</code>
                 </div>
                 <div>
+                  <span className="text-foreground">Qlik host:</span>
+                  <br />
+                  <code className="text-foreground">{qlikConfig.host}</code>
+                </div>
+                <div>
+                  <span className="text-foreground">Qlik web integration ID:</span>
+                  <br />
+                  <code className="text-foreground">{qlikConfig.webIntegrationId}</code>
+                </div>
+                <div>
                   <span className="text-foreground">Qlik login return target:</span>
                   <br />
                   <code className="block break-all text-foreground">{new URL(buildQlikLoginUrl()).searchParams.get("returnto")}</code>
