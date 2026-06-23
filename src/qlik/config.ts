@@ -14,7 +14,7 @@ export const qlikConfig: QlikCloudConfig = {
   host: readEnv("VITE_QLIK_HOST") ?? "cliqvenus.ap.qlikcloud.com",
   appId: readEnv("VITE_QLIK_APP_ID") ?? "53b13125-7bb8-4ff0-b5bc-9e2704b0363e",
   webIntegrationId:
-    readEnv("VITE_QLIK_WEB_INTEGRATION_ID") ?? "795U_JOjgZKolwenfKsSFtdLEkWZTemY",
+    readEnv("VITE_QLIK_WEB_INTEGRATION_ID") ?? "M56RlXSVJ0dcpleLLpIdU1oPwI9sDQxJ",
   appOrigin: readEnv("VITE_APP_ORIGIN"),
 };
 
