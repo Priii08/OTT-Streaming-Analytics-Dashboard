@@ -104,12 +104,12 @@ export default function App() {
             </div>
 
             {!qlikReady && !qlikError && (
-              <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100" style={{ fontSize: "0.78rem" }}>
+              <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-600" style={{ fontSize: "0.78rem" }}>
                 Live Qlik data is not available yet. Sign in to Qlik Cloud using the web integration allowed origin, then reload the app.
                 <div className="mt-2">
                   <a
                     href={buildQlikLoginUrl()}
-                    className="inline-flex items-center rounded-lg border border-amber-400/40 px-3 py-1.5 font-semibold text-amber-100 hover:bg-amber-500/20"
+                    className="inline-flex items-center rounded-lg border border-amber-400/40 px-3 py-1.5 font-semibold text-amber-600 hover:bg-amber-500/20"
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -157,7 +157,7 @@ export default function App() {
                 <div>
                   <span className="text-foreground">Full Qlik login URL:</span>
                   <br />
-                  <code className="block break-all text-accent">{buildQlikLoginUrl()}</code>
+                  <code className="block break-all text-foreground">{buildQlikLoginUrl()}</code>
                 </div>
               </div>
             </details>
