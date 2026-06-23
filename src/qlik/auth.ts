@@ -2,69 +2,129 @@ import { qlikConfig, tenantBaseUrl } from "./config";
 
 const CSRF_STORAGE_KEY = "qlik-csrf-token";
 
-function randomToken(length = 16): string {
-	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-	let token = "";
-	for (let i = 0; i < length; i += 1) {
-		token += chars.charAt(Math.floor(Math.random() * chars.length));
-	}
-	return token;
+/**
+ * Fetch a server-issued CSRF token from Qlik Cloud.
+ *
+ * Qlik's CSRF token MUST come from the server — it is cryptographically bound
+ * to the current session. Generating a random string locally will cause every
+ * subsequent API call and WebSocket upgrade to be rejected with a 401.
+ *
+ * The token is cached in sessionStorage for the lifetime of the tab. It is
+ * cleared on any 401/403 so a stale cached value can never be reused.
+ */
+export async function fetchCsrfToken(): Promise<string> {
+  const cached = window.sessionStorage.getItem(CSRF_STORAGE_KEY);
+  if (cached) {
+    return cached;
+  }
+
+  const response = await fetch(`${tenantBaseUrl()}/api/v1/csrf-token`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "qlik-web-integration-id": qlikConfig.webIntegrationId,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch CSRF token from Qlik Cloud (HTTP ${response.status})`);
+  }
+
+  const token = response.headers.get("qlik-csrf-token");
+  if (!token) {
+    throw new Error(
+      "Qlik Cloud did not return a qlik-csrf-token header. " +
+      "Ensure the browser session cookie is present and the Web Integration ID is correct."
+    );
+  }
+
+  window.sessionStorage.setItem(CSRF_STORAGE_KEY, token);
+  return token;
 }
 
-export function getOrCreateCsrfToken(): string {
-	const existing = window.sessionStorage.getItem(CSRF_STORAGE_KEY);
-	if (existing) {
-		return existing;
-	}
-	const created = randomToken();
-	window.sessionStorage.setItem(CSRF_STORAGE_KEY, created);
-	return created;
+/**
+ * Clear the cached CSRF token (call after any 401/403 to force a fresh fetch).
+ */
+export function clearCsrfToken(): void {
+  window.sessionStorage.removeItem(CSRF_STORAGE_KEY);
 }
 
-export function buildQlikLoginUrl(returnTo = window.location.href): string {
-	const preferredReturnTo = qlikConfig.appOrigin ?? returnTo;
-	const normalizedReturnTo = new URL(preferredReturnTo, window.location.origin).origin;
-	const params = new URLSearchParams({
-		"qlik-web-integration-id": qlikConfig.webIntegrationId,
-		returnto: normalizedReturnTo,
-	});
-	return `${tenantBaseUrl()}/login?${params.toString()}`;
+/**
+ * Build the Qlik login URL.
+ *
+ * The `returnto` parameter MUST be the exact origin that is whitelisted in the
+ * Qlik Cloud Management Console → Web Integrations. We always use
+ * window.location.origin so it matches the browser's actual origin regardless
+ * of any env-var override.
+ */
+export function buildQlikLoginUrl(): string {
+  const params = new URLSearchParams({
+    "qlik-web-integration-id": qlikConfig.webIntegrationId,
+    returnto: window.location.origin,
+  });
+  return `${tenantBaseUrl()}/login?${params.toString()}`;
 }
 
+/**
+ * Check whether the current browser has an active Qlik Cloud session.
+ *
+ * Steps:
+ * 1. Obtain a real server-issued CSRF token.
+ * 2. Call /api/v1/users/me with credentials + the real token.
+ * 3. Return false (not authenticated) on 401/403; clear stale cached token.
+ */
 export async function hasQlikSession(): Promise<boolean> {
-	const csrfToken = getOrCreateCsrfToken();
-	const response = await fetch(`${tenantBaseUrl()}/api/v1/users/me`, {
-		method: "GET",
-		credentials: "include",
-		headers: {
-			"qlik-web-integration-id": qlikConfig.webIntegrationId,
-			"qlik-csrf-token": csrfToken,
-			Accept: "application/json",
-		},
-	});
+  let csrfToken: string;
+  try {
+    csrfToken = await fetchCsrfToken();
+  } catch {
+    // If we cannot obtain the CSRF token the user is not authenticated.
+    return false;
+  }
 
-	if (response.ok) {
-		return true;
-	}
+  const response = await fetch(`${tenantBaseUrl()}/api/v1/users/me`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "qlik-web-integration-id": qlikConfig.webIntegrationId,
+      "qlik-csrf-token": csrfToken,
+      Accept: "application/json",
+    },
+  });
 
-	if (response.status === 401 || response.status === 403) {
-		return false;
-	}
+  if (response.ok) {
+    return true;
+  }
 
-	const body = await response.text().catch(() => "");
-	throw new Error(`Qlik session check failed (${response.status}): ${body}`);
+  if (response.status === 401 || response.status === 403) {
+    // Stale or invalid token — clear cache so the next attempt fetches a fresh one.
+    clearCsrfToken();
+    return false;
+  }
+
+  const body = await response.text().catch(() => "");
+  throw new Error(`Qlik session check failed (${response.status}): ${body}`);
 }
 
 export interface AuthCheckResult {
-	authenticated: boolean;
-	redirected: boolean;
+  authenticated: boolean;
+  redirected: boolean;
 }
 
+/**
+ * Ensure the user is authenticated with Qlik Cloud.
+ *
+ * If no valid session is found the browser is redirected to the Qlik login
+ * page. The caller should bail out immediately when `redirected` is true.
+ */
 export async function ensureQlikAuthenticated(): Promise<AuthCheckResult> {
-	const authenticated = await hasQlikSession();
-	if (authenticated) {
-		return { authenticated: true, redirected: false };
-	}
+  const authenticated = await hasQlikSession();
+  if (authenticated) {
+    return { authenticated: true, redirected: false };
+  }
 
-	return { authenticated: false, redirected: false };
+  // Redirect to Qlik login; returnto is the current origin so Qlik sends the
+  // user back here after they sign in.
+  window.location.href = buildQlikLoginUrl();
+  return { authenticated: false, redirected: true };
 }

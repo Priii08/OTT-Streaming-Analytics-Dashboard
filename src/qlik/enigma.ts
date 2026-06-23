@@ -1,7 +1,7 @@
 import enigma from "enigma.js";
 import schema from "enigma.js/schemas/12.2015.0.json";
 import { qlikConfig, websocketAppUrl } from "./config";
-import { getOrCreateCsrfToken } from "./auth";
+import { fetchCsrfToken } from "./auth";
 
 export interface EngineSession {
   session: {
@@ -11,7 +11,7 @@ export interface EngineSession {
 }
 
 export async function openEngineAppSession(): Promise<EngineSession> {
-  const csrfToken = getOrCreateCsrfToken();
+  const csrfToken = await fetchCsrfToken();
   const session = enigma.create({
     schema,
     url: websocketAppUrl(csrfToken),
