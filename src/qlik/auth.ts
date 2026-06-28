@@ -125,6 +125,10 @@ export async function ensureQlikAuthenticated(): Promise<AuthCheckResult> {
 
   // Redirect to Qlik login; returnto is the current origin so Qlik sends the
   // user back here after they sign in.
-  window.location.href = buildQlikLoginUrl();
-  return { authenticated: false, redirected: true };
+console.log("LOGIN URL:", buildQlikLoginUrl());
+
+return {
+  authenticated: false,
+  redirected: false,
+};
 }
