@@ -119,16 +119,16 @@ export interface AuthCheckResult {
  */
 export async function ensureQlikAuthenticated(): Promise<AuthCheckResult> {
   const authenticated = await hasQlikSession();
+
   if (authenticated) {
     return { authenticated: true, redirected: false };
   }
 
-  // Redirect to Qlik login; returnto is the current origin so Qlik sends the
-  // user back here after they sign in.
-console.log("LOGIN URL:", buildQlikLoginUrl());
+  console.log("Qlik Login URL:", buildQlikLoginUrl());
 
-return {
-  authenticated: false,
-  redirected: false,
-};
+  // TEMP: Don't redirect automatically
+  return {
+    authenticated: false,
+    redirected: false,
+  };
 }
