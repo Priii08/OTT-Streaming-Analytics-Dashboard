@@ -72,7 +72,7 @@ export default function App() {
   return (
     <div className={isDark ? "dark" : ""} style={{ minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
       <div className="bg-background flex flex-col" style={{ minHeight: "100vh" }}>
-        <Header isDark={isDark} onToggleTheme={() => setIsDark((d) => !d)} />
+        <Header isDark={isDark} onToggleTheme={() => setIsDark((d) => !d)} qlikReady={qlikReady} />
 
         <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 60px)" }}>
           {/* Sidebar — fully controlled */}

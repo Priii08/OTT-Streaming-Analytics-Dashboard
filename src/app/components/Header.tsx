@@ -3,9 +3,10 @@ import { Sun, Moon, RefreshCw, Activity } from "lucide-react";
 interface HeaderProps {
   isDark: boolean;
   onToggleTheme: () => void;
+  qlikReady: boolean;
 }
 
-export function Header({ isDark, onToggleTheme }: HeaderProps) {
+export function Header({ isDark, onToggleTheme, qlikReady }: HeaderProps) {
   const now = new Date();
   const formatted = now.toLocaleDateString("en-US", {
     month: "short",
@@ -54,8 +55,10 @@ export function Header({ isDark, onToggleTheme }: HeaderProps) {
             className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border ml-2"
             style={{ fontSize: "0.68rem" }}
           >
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-muted-foreground font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>Qlik Sense Connected</span>
+            <div className={`w-1.5 h-1.5 rounded-full ${qlikReady ? "bg-green-500 animate-pulse" : "bg-amber-500"}`} />
+            <span className="text-muted-foreground font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
+              {qlikReady ? "Qlik Sense Connected" : "Qlik Sense Sample Data"}
+            </span>
           </div>
         </div>
 
