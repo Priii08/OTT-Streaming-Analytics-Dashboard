@@ -58,10 +58,13 @@ export function clearCsrfToken(): void {
  * of any env-var override.
  */
 export function buildQlikLoginUrl(): string {
+  const returnTo = qlikConfig.appOrigin ?? window.location.origin;
+
   const params = new URLSearchParams({
     "qlik-web-integration-id": qlikConfig.webIntegrationId,
-    returnto: window.location.origin,
+    returnto: returnTo,
   });
+
   return `${tenantBaseUrl()}/login?${params.toString()}`;
 }
 
@@ -114,8 +117,9 @@ export interface AuthCheckResult {
 /**
  * Ensure the user is authenticated with Qlik Cloud.
  *
- * If no valid session is found the browser is redirected to the Qlik login
- * page. The caller should bail out immediately when `redirected` is true.
+ * If no valid session is found we stay on the current app and let it use the
+ * bundled fallback data. This avoids sending the user into a login loop when
+ * the deployment origin cannot be added to Qlik Cloud's allowed origins list.
  */
 export async function ensureQlikAuthenticated(): Promise<AuthCheckResult> {
   const authenticated = await hasQlikSession();
@@ -124,9 +128,8 @@ export async function ensureQlikAuthenticated(): Promise<AuthCheckResult> {
     return { authenticated: true, redirected: false };
   }
 
-  console.log("Qlik Login URL:", buildQlikLoginUrl());
+  console.warn("Qlik session missing; staying on bundled fallback data.");
 
-  // TEMP: Don't redirect automatically
   return {
     authenticated: false,
     redirected: false,

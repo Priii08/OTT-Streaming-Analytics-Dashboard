@@ -105,17 +105,7 @@ export default function App() {
 
             {!qlikReady && !qlikError && (
               <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-600" style={{ fontSize: "0.78rem" }}>
-                Live Qlik data is not available yet. Sign in to Qlik Cloud using the web integration allowed origin, then reload the app.
-                <div className="mt-2">
-                  <a
-                    href={buildQlikLoginUrl()}
-                    className="inline-flex items-center rounded-lg border border-amber-400/40 px-3 py-1.5 font-semibold text-amber-600 hover:bg-amber-500/20"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open Qlik login
-                  </a>
-                </div>
+                Live Qlik data is unavailable for this deployment because the origin is not allowed in Qlik Cloud. The dashboard will stay on bundled sample data.
               </div>
             )}
 
@@ -137,7 +127,7 @@ export default function App() {
                 <div>
                   <span className="text-foreground">Qlik app origin (env var):</span>
                   <br />
-                  <code className="text-foreground">{qlikConfig.appOrigin || "(not set)"}</code>
+                  <code className="text-foreground">{qlikConfig.appOrigin || "(fallback to window.location.origin)"}</code>
                 </div>
                 <div>
                   <span className="text-foreground">Qlik host:</span>
