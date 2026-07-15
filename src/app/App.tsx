@@ -7,7 +7,7 @@ import { AdvancedAnalytics } from "./components/AdvancedAnalytics";
 import { DEFAULT_FILTERS, deriveChartData, type Filters } from "./data/derive";
 import { titles as fallbackTitles, type Title } from "./data/dataset";
 import { fetchQlikDashboardData, type QlikFilterOptions } from "../qlik/dashboard";
-import { buildQlikLoginUrl, ensureQlikAuthenticated } from "../qlik/auth";
+import { buildQlikLoginUrl, ensureQlikAuthenticated, debugReturnToUrl, resolvedAppOrigin } from "../qlik/auth";
 import { qlikConfig } from "../qlik/config";
 
 export default function App() {
@@ -115,19 +115,39 @@ export default function App() {
               </div>
             )}
 
-            {/* Debug Panel */}
-            <details className="mb-4 rounded-xl border border-border bg-accent/5 px-4 py-3" style={{ fontSize: "0.75rem" }}>
-              <summary className="cursor-pointer font-semibold text-foreground hover:text-accent">Debug Info</summary>
-              <div className="mt-3 space-y-2 font-mono text-muted-foreground">
+            {/* Debug Panel — open by default so the returnto URL is always visible */}
+            <details open className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/5 px-4 py-3" style={{ fontSize: "0.75rem" }}>
+              <summary className="cursor-pointer font-semibold text-amber-500 hover:text-amber-400">🔍 Auth Debug Info (check this if you see LOGIN-10)</summary>
+              <div className="mt-3 space-y-3 font-mono">
+
+                {/* THE KEY VALUE — must match Qlik whitelist */}
+                <div className="rounded-lg border-2 border-amber-500/60 bg-amber-500/10 p-3">
+                  <div className="mb-1 font-sans font-bold text-amber-400" style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    ⚠️ ORIGIN SENT AS returnto (must be in Qlik whitelist)
+                  </div>
+                  <code className="block break-all text-amber-300" style={{ fontSize: "0.82rem" }}>{resolvedAppOrigin()}</code>
+                  <div className="mt-2 font-sans text-amber-500/80" style={{ fontSize: "0.68rem" }}>
+                    Go to Qlik MC → Web Integrations → your Web Integration → Allowed origins → confirm this exact string is listed.
+                  </div>
+                </div>
+
                 <div>
-                  <span className="text-foreground">Window origin:</span>
+                  <span className="text-foreground">Full returnto URL sent to Qlik:</span>
                   <br />
-                  <code className="text-foreground">{window.location.origin}</code>
+                  <code className="block break-all text-foreground">{debugReturnToUrl()}</code>
                 </div>
                 <div>
-                  <span className="text-foreground">Qlik app origin (env var):</span>
+                  <span className="text-foreground">Browser window.location.origin:</span>
                   <br />
-                  <code className="text-foreground">{qlikConfig.appOrigin || "(fallback to window.location.origin)"}</code>
+                  <code className="block break-all" style={{ color: resolvedAppOrigin() === window.location.origin ? "#22c55e" : "#f87171" }}>
+                    {window.location.origin}
+                    {resolvedAppOrigin() !== window.location.origin && " ← MISMATCH with VITE_APP_ORIGIN! Qlik will use VITE_APP_ORIGIN."}
+                  </code>
+                </div>
+                <div>
+                  <span className="text-foreground">VITE_APP_ORIGIN env var:</span>
+                  <br />
+                  <code className="text-foreground">{qlikConfig.appOrigin || "(not set — falling back to window.location.origin)"}</code>
                 </div>
                 <div>
                   <span className="text-foreground">Qlik host:</span>
@@ -138,11 +158,6 @@ export default function App() {
                   <span className="text-foreground">Qlik web integration ID:</span>
                   <br />
                   <code className="text-foreground">{qlikConfig.webIntegrationId}</code>
-                </div>
-                <div>
-                  <span className="text-foreground">Qlik login return target:</span>
-                  <br />
-                  <code className="block break-all text-foreground">{new URL(buildQlikLoginUrl()).searchParams.get("returnto")}</code>
                 </div>
                 <div>
                   <span className="text-foreground">Full Qlik login URL:</span>

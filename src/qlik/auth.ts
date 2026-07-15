@@ -3,10 +3,32 @@ import { qlikConfig, tenantBaseUrl } from "./config";
 const CSRF_STORAGE_KEY = "qlik-csrf-token";
 
 /**
- * The URL param Qlik appends when redirecting back after a successful login.
- * We stamp our own marker too so we can detect a returning session.
+ * The URL param we append to the returnto URL so the app can detect it
+ * has just come back from a Qlik login redirect.
  */
 const RETURN_MARKER = "qlik_auth_return";
+
+/**
+ * Resolve the app origin that will be used as the `returnto` URL.
+ *
+ * Priority:
+ *  1. VITE_APP_ORIGIN env var  — the canonical, whitelisted origin you control
+ *  2. window.location.origin   — the actual browser origin (fallback)
+ *
+ * CRITICAL: Whatever value this returns MUST be listed in the Qlik Cloud
+ * Management Console → Web Integrations → Allowed origins.
+ * The whitelist entry must be the bare origin (no trailing slash, no path).
+ */
+export function resolvedAppOrigin(): string {
+  // Use the explicitly configured origin when available. This is the safest
+  // choice because it is the URL you actually whitelisted in Qlik.
+  if (qlikConfig.appOrigin) {
+    // Strip any trailing slash to normalise the value.
+    return qlikConfig.appOrigin.replace(/\/$/, "");
+  }
+  // Fall back to the real browser origin (no trailing slash by spec).
+  return window.location.origin;
+}
 
 /**
  * Fetch a server-issued CSRF token from Qlik Cloud.
@@ -58,25 +80,31 @@ export function clearCsrfToken(): void {
 /**
  * Build the Qlik login URL.
  *
- * CRITICAL FIX for LOGIN-10:
- * The `returnto` parameter MUST be the exact origin string that is whitelisted
- * in the Qlik Cloud Management Console → Web Integrations.
+ * How Qlik validates the `returnto` parameter:
+ *   Qlik extracts the ORIGIN from the returnto URL and checks it against the
+ *   "Allowed origins" list of the Web Integration identified by the
+ *   qlik-web-integration-id query parameter.
  *
- * Qlik Cloud whitelists ORIGINS (no trailing slash, no path).
- * Using window.location.origin (no trailing slash) is required.
+ *   If the origin is not in the list → LOGIN-10 (401).
  *
- * We also append a ?qlik_auth_return=1 marker to the returnto URL so the app
- * can detect it has just come back from a Qlik login redirect and avoid
- * immediately re-triggering the auth flow before cookies settle.
+ * What we send as returnto:
+ *   <resolvedAppOrigin()>/?qlik_auth_return=1
+ *
+ *   The origin used is VITE_APP_ORIGIN (if set in your env) OR
+ *   window.location.origin. Both must match the Qlik whitelist entry exactly.
+ *
+ *   The ?qlik_auth_return=1 query string is used by this app to detect that
+ *   we just came back from a Qlik login redirect, preventing infinite loops.
  */
 export function buildQlikLoginUrl(): string {
-  // IMPORTANT: Use window.location.origin WITHOUT a trailing slash.
-  // Qlik's whitelist entry must match this exactly.
-  // Adding "/" produces LOGIN-10 if the entry was saved without the slash.
-  const origin = window.location.origin;
+  const origin = resolvedAppOrigin();
 
-  // Append a marker so we can detect the post-login return and skip the
-  // redirect loop guard.
+  // Log so you can see EXACTLY what is being sent as returnto.
+  console.log("[Qlik Auth] origin resolved to:", origin);
+  console.log("[Qlik Auth] window.location.origin is:", window.location.origin);
+
+  // Build the returnto URL. The origin is what Qlik validates against the
+  // whitelist — the path and query string are ignored by Qlik's check.
   const returnTo = `${origin}/?${RETURN_MARKER}=1`;
 
   const params = new URLSearchParams({
@@ -84,15 +112,23 @@ export function buildQlikLoginUrl(): string {
     returnto: returnTo,
   });
 
-  return `${tenantBaseUrl()}/login?${params.toString()}`;
+  const loginUrl = `${tenantBaseUrl()}/login?${params.toString()}`;
+  console.log("[Qlik Auth] full login URL:", loginUrl);
+  console.log("[Qlik Auth] returnto value:", returnTo);
+  return loginUrl;
 }
 
 /**
- * Returns true if the current page load is a Qlik post-login redirect
- * (i.e. we were just sent back from the Qlik login page).
- *
- * In this case we should NOT immediately re-check the session — we should
- * wait for the cookie to be set and then check once.
+ * Returns the returnto URL that would be sent to Qlik right now.
+ * Used by the debug UI panel to display the exact value.
+ */
+export function debugReturnToUrl(): string {
+  const origin = resolvedAppOrigin();
+  return `${origin}/?${RETURN_MARKER}=1`;
+}
+
+/**
+ * Returns true if the current page load is a Qlik post-login redirect.
  */
 function isQlikReturnRedirect(): boolean {
   const params = new URLSearchParams(window.location.search);
@@ -100,8 +136,7 @@ function isQlikReturnRedirect(): boolean {
 }
 
 /**
- * Strip the auth return marker from the current URL so it doesn't clutter
- * the browser history or get bookmarked.
+ * Strip the auth return marker from the URL so it is not bookmarked.
  */
 function cleanUpReturnMarker(): void {
   try {
@@ -111,24 +146,18 @@ function cleanUpReturnMarker(): void {
       window.history.replaceState({}, "", url.toString());
     }
   } catch {
-    // Non-critical – ignore errors in URL manipulation.
+    // Non-critical.
   }
 }
 
 /**
  * Check whether the current browser has an active Qlik Cloud session.
- *
- * Steps:
- * 1. Obtain a real server-issued CSRF token.
- * 2. Call /api/v1/users/me with credentials + the real token.
- * 3. Return false (not authenticated) on 401/403; clear stale cached token.
  */
 export async function hasQlikSession(): Promise<boolean> {
   let csrfToken: string;
   try {
     csrfToken = await fetchCsrfToken();
   } catch {
-    // If we cannot obtain the CSRF token the user is not authenticated.
     return false;
   }
 
@@ -147,7 +176,6 @@ export async function hasQlikSession(): Promise<boolean> {
   }
 
   if (response.status === 401 || response.status === 403) {
-    // Stale or invalid token — clear cache so the next attempt fetches a fresh one.
     clearCsrfToken();
     return false;
   }
@@ -164,25 +192,16 @@ export interface AuthCheckResult {
 /**
  * Ensure the user is authenticated with Qlik Cloud.
  *
- * LOGIN-10 root-cause fix:
- *
- *  1. If we just returned from a Qlik login redirect (RETURN_MARKER in URL),
- *     we clean up the URL and attempt to verify the session.
- *     If it fails even after returning from login we bail to fallback data
- *     (rather than looping forever).
- *
- *  2. If not returning from login and no session exists, we redirect exactly
- *     once. The returnto URL uses window.location.origin (no trailing slash)
- *     which must match what is entered in the Qlik Web Integration whitelist.
- *
- *  3. If no valid session is found AND we're not coming back from a redirect,
- *     we redirect to Qlik login — but only once per page load.
+ *  1. Detect post-login return via RETURN_MARKER to prevent redirect loops.
+ *  2. If authenticated → proceed.
+ *  3. If returning from login but still no session → fall back to sample data
+ *     (never redirect again to avoid an infinite loop).
+ *  4. If first visit with no session → redirect to Qlik login exactly once.
  */
 export async function ensureQlikAuthenticated(): Promise<AuthCheckResult> {
   const returningFromLogin = isQlikReturnRedirect();
 
   if (returningFromLogin) {
-    // We just came back from the Qlik login page. Clean up the URL.
     cleanUpReturnMarker();
   }
 
@@ -193,24 +212,20 @@ export async function ensureQlikAuthenticated(): Promise<AuthCheckResult> {
   }
 
   if (returningFromLogin) {
-    // We already went through login but still have no session.
-    // This means the login succeeded on Qlik's side but the cookie hasn't
-    // settled or there is a CORS/cookie issue.
-    // DO NOT redirect again — fall back to sample data to avoid an infinite loop.
     console.warn(
-      "Returned from Qlik login but session is still not active. " +
-      "Possible causes: third-party cookies blocked, or the Qlik Web Integration " +
-      "whitelist does not include this origin. Falling back to sample data."
+      "[Qlik Auth] Returned from Qlik login but session is still not active. " +
+      "Possible causes:\n" +
+      "  • Third-party cookies are blocked in this browser.\n" +
+      "  • The Qlik Web Integration whitelist entry does not match the origin below.\n" +
+      "  • Resolved origin: " + resolvedAppOrigin() + "\n" +
+      "  • Browser origin:  " + window.location.origin + "\n" +
+      "Falling back to sample data."
     );
     return { authenticated: false, redirected: false };
   }
 
-  // First-time visit with no session — redirect to Qlik login.
-  console.warn("Qlik session missing; redirecting to Qlik login.");
+  console.warn("[Qlik Auth] No Qlik session — redirecting to Qlik login.");
   window.location.assign(buildQlikLoginUrl());
 
-  return {
-    authenticated: false,
-    redirected: true,
-  };
+  return { authenticated: false, redirected: true };
 }
