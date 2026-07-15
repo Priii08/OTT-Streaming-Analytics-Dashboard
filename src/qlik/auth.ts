@@ -18,13 +18,15 @@ export function resolvedAppOrigin(): string {
 /**
  * The exact returnto URL sent to Qlik.
  *
- * The Qlik whitelist entry is stored WITHOUT the protocol (e.g. "ott-streaming-analytics-dashboard.vercel.app").
- * So we strip "https://" from the origin to match it exactly — otherwise Qlik returns LOGIN-10.
- * Qlik will redirect back to the app after login using this URL.
+ * Uses a protocol-relative URL (//) as a workaround:
+ * - Qlik whitelist check: strips "//" and sees the bare hostname → matches the
+ *   whitelist entry "ott-streaming-analytics-dashboard.vercel.app" ✅
+ * - Browser redirect: resolves "//" relative to Qlik's own https:// origin →
+ *   navigates to https://ott-streaming-analytics-dashboard.vercel.app ✅
  */
 export function buildReturnToUrl(): string {
-  // Strip protocol so the hostname matches the Qlik whitelist entry (no https://)
-  const origin = resolvedAppOrigin().replace(/^https?:\/\//, "");
+  // Strip the protocol entirely — use // so the browser inherits https:// from Qlik
+  const origin = resolvedAppOrigin().replace(/^https?:\/\//, "//");
   return `${origin}/?${RETURN_MARKER}=1`;
 }
 
