@@ -23,8 +23,9 @@ export function resolvedAppOrigin(): string {
   // Use the explicitly configured origin when available. This is the safest
   // choice because it is the URL you actually whitelisted in Qlik.
   if (qlikConfig.appOrigin) {
-    // Strip any trailing slash to normalise the value.
-    return qlikConfig.appOrigin.replace(/\/$/, "");
+    // .trim() removes the \n newline that .env file line-endings inject into the
+    // value — without this, the URL contains %0A and Qlik rejects it (LOGIN-10).
+    return qlikConfig.appOrigin.trim().replace(/\/$/, "");
   }
   // Fall back to the real browser origin (no trailing slash by spec).
   return window.location.origin;

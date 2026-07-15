@@ -15,7 +15,9 @@ export const qlikConfig: QlikCloudConfig = {
   appId: readEnv("VITE_QLIK_APP_ID") ?? "53b13125-7bb8-4ff0-b5bc-9e2704b0363e",
   webIntegrationId:
     readEnv("VITE_QLIK_WEB_INTEGRATION_ID") ?? "M56RlXSVJ0dcpleLLpIdU1oPwI9sDQxJ",
-  appOrigin: readEnv("VITE_APP_ORIGIN"),
+  // .trim() is critical: .env file line-endings embed \n in the string which
+  // then becomes %0A in URLs and causes Qlik LOGIN-10 errors.
+  appOrigin: readEnv("VITE_APP_ORIGIN")?.trim().replace(/\/$/, ""),
 };
 
 export function tenantBaseUrl(): string {
