@@ -58,7 +58,7 @@ export function clearCsrfToken(): void {
  * of any env-var override.
  */
 export function buildQlikLoginUrl(): string {
-  const returnTo = qlikConfig.appOrigin ?? window.location.origin;
+  const returnTo = window.location.origin;
 
   const params = new URLSearchParams({
     "qlik-web-integration-id": qlikConfig.webIntegrationId,
