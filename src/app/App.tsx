@@ -168,11 +168,63 @@ export default function App() {
             )}
 
             {/* Debug Panel */}
-            <details className="mb-4 rounded-xl border border-border bg-accent/5 px-4 py-3" style={{ fontSize: "0.75rem" }}>
-              <summary className="cursor-pointer font-semibold text-muted-foreground hover:text-foreground">🔍 Auth Debug Info</summary>
-              <div className="mt-3 space-y-2 font-mono text-muted-foreground">
+            <details open className="mb-4 rounded-xl border border-border bg-accent/5 px-4 py-3" style={{ fontSize: "0.75rem" }}>
+              <summary className="cursor-pointer font-semibold text-muted-foreground hover:text-foreground">🔍 Auth Debug Info & Whitelist Tester</summary>
+              <div className="mt-3 space-y-4 font-mono text-muted-foreground">
+                
+                {/* Whitelist Tester Section */}
+                <div className="border border-amber-500/30 rounded-lg p-3 bg-amber-500/5 space-y-3 font-sans">
+                  <div className="font-bold text-amber-500 text-xs">🧪 Interactive Whitelist & Redirect Tester</div>
+                  <p className="text-[11px] leading-relaxed">
+                    Test different <code>returnto</code> formats or <code>web-integration-id</code>s directly in your browser. 
+                    If a test succeeds without a 401/LOGIN-10, you've found the format that matches your Qlik configuration!
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted-foreground mb-1">TEST RETURTO URL:</label>
+                      <input 
+                        type="text" 
+                        id="test-returnto-input"
+                        defaultValue={resolvedAppOrigin()} 
+                        className="w-full bg-background border border-border rounded px-2 py-1 text-xs font-mono text-foreground focus:outline-none focus:border-amber-500"
+                        placeholder="e.g. https://ott-streaming-analytics-dashboard.vercel.app"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-muted-foreground mb-1">TEST WEB INTEGRATION ID:</label>
+                      <input 
+                        type="text" 
+                        id="test-integration-id-input"
+                        defaultValue={qlikConfig.webIntegrationId} 
+                        className="w-full bg-background border border-border rounded px-2 py-1 text-xs font-mono text-foreground focus:outline-none focus:border-amber-500"
+                        placeholder="e.g. M56RIXSVJ0dcpleLLpldU1oPwI9sDQxJ"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const returntoInput = document.getElementById("test-returnto-input") as HTMLInputElement;
+                      const integrationIdInput = document.getElementById("test-integration-id-input") as HTMLInputElement;
+                      if (returntoInput && integrationIdInput) {
+                        const params = new URLSearchParams({
+                          "qlik-web-integration-id": integrationIdInput.value.trim(),
+                          returnto: returntoInput.value.trim(),
+                        });
+                        const url = `https://${qlikConfig.host}/login?${params.toString()}`;
+                        console.log("Testing redirect to:", url);
+                        window.location.assign(url);
+                      }
+                    }}
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-background font-bold py-1.5 px-3 rounded text-xs transition cursor-pointer"
+                  >
+                    🚀 Test Redirect Origin
+                  </button>
+                </div>
+
                 <div>
-                  <span className="text-foreground font-bold">Origin sent as returnto (must be in Qlik whitelist):</span>
+                  <span className="text-foreground font-bold">Origin sent as returnto:</span>
                   <br />
                   <code className="text-amber-400" style={{ fontSize: "0.85rem" }}>{resolvedAppOrigin()}</code>
                 </div>
