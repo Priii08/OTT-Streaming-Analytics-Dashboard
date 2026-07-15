@@ -17,7 +17,9 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
-  base: './',
+  // Use '/' for Vercel deployments. The './'-relative base was intended for
+  // GitHub Pages subdirectory hosting but breaks absolute asset paths on Vercel.
+  base: '/',
   plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
