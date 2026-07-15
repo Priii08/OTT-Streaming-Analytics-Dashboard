@@ -17,8 +17,9 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
-  // Use absolute base URL for routing and asset resolution.
-  base: '/',
+  // GitHub Pages serves under /OTT-Streaming-Analytics-Dashboard/; Vercel uses /
+  base: process.env.VITE_BASE_PATH ?? '/',
+
   plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>OTT Streaming Analytics Dashboard</title>
+    <script>
+      // GitHub Pages SPA redirect hack:
+      // Store the full path in sessionStorage and redirect to the base index.
+      var base = '/OTT-Streaming-Analytics-Dashboard';
+      var path = window.location.pathname.slice(base.length) + window.location.search + window.location.hash;
+      sessionStorage.setItem('gh-pages-redirect', path);
+      window.location.replace(base + '/');
+    </script>
+  </head>
+  <body></body>
+</html>
