@@ -128,10 +128,11 @@ export async function ensureQlikAuthenticated(): Promise<AuthCheckResult> {
     return { authenticated: true, redirected: false };
   }
 
-  console.warn("Qlik session missing; staying on bundled fallback data.");
+  console.warn("Qlik session missing; redirecting to Qlik login.");
+  window.location.assign(buildQlikLoginUrl());
 
   return {
     authenticated: false,
-    redirected: false,
+    redirected: true,
   };
 }
