@@ -17,8 +17,7 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
-  // Use '/' for Vercel deployments. The './'-relative base was intended for
-  // GitHub Pages subdirectory hosting but breaks absolute asset paths on Vercel.
+  // Use absolute base URL for routing and asset resolution.
   base: '/',
   plugins: [
     figmaAssetResolver(),
